@@ -77,9 +77,9 @@ class Test < ActiveRecord::Base
     self.diff ||= 0
     self.pass ||= false
     self.fuzz_level = '30%' if self.fuzz_level.blank?
-    #self.excluded_areas = '0,0 0,0' if self.excluded_areas.blank?
-    #self.crop_areas = '0,0 0,0' if self.crop_areas.blank?
-    #self.diff_threshhold = 0.1 if self.diff_threshhold.blank?
+    self.excluded_areas = '0,0 0,0' if self.excluded_areas.blank?
+    self.crop_areas = '0,0 0,0' if self.crop_areas.blank?
+    self.diff_threshhold = 0.1 if self.diff_threshhold.blank?
     self.highlight_colour = 'ff0000' if self.highlight_colour.blank?
   end
 

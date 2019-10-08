@@ -35,36 +35,33 @@ class ScreenshotComparison
 
     baseline_resize_command = convert_image_command(test.screenshot_baseline.path, image_paths[:baseline], canvas.to_h)
     test_size_command = convert_image_command(test.screenshot.path, image_paths[:test], canvas.to_h)
-    if test.crop_areas != nil || test.exclude_areas != nil
-      overlay_baseline_mask_command = overlay_image_command(image_paths[:baseline], image_paths[:mask], image_paths[:baseline_masked], false)
-      overlay_test_mask_command = overlay_image_command(image_paths[:test], image_paths[:mask], image_paths[:test_masked], false)
-      overlay_diff_mask_command = overlay_image_command(image_paths[:diff], image_paths[:mask], image_paths[:diff], true)
 
-      compare_command = compare_images_command(image_paths[:baseline_masked], image_paths[:test_masked], image_paths[:diff], test.fuzz_level, test.highlight_colour)
-      Rails.logger.debug("Command: text_size:: #{test_size_command}")
-      Rails.logger.debug("Command: baseline_size:: #{baseline_resize_command}")
-      Rails.logger.debug("Command: create_mask:: #{create_mask}")
-      Rails.logger.debug("Command: overlay_baseline:: #{overlay_baseline_mask_command}")
-      Rails.logger.debug("Command: overlay_test:: #{overlay_test_mask_command}")
-      Rails.logger.debug("Command: compare:: #{compare_command}")
-      Rails.logger.debug("Command: overlay_diff:: #{overlay_diff_mask_command}")
+    overlay_baseline_mask_command = overlay_image_command(image_paths[:baseline], image_paths[:mask], image_paths[:baseline_masked], false)
+    overlay_test_mask_command = overlay_image_command(image_paths[:test], image_paths[:mask], image_paths[:test_masked], false)
+    overlay_diff_mask_command = overlay_image_command(image_paths[:diff], image_paths[:mask], image_paths[:diff], true)
 
+    compare_command = compare_images_command(image_paths[:baseline_masked], image_paths[:test_masked], image_paths[:diff], test.fuzz_level, test.highlight_colour)
+    Rails.logger.debug("Command: text_size:: #{test_size_command}")
+    Rails.logger.debug("Command: baseline_size:: #{baseline_resize_command}")
+    Rails.logger.debug("Command: create_mask:: #{create_mask}")
+    Rails.logger.debug("Command: overlay_baseline:: #{overlay_baseline_mask_command}")
+    Rails.logger.debug("Command: overlay_test:: #{overlay_test_mask_command}")
+    Rails.logger.debug("Command: compare:: #{compare_command}")
+    Rails.logger.debug("Command: overlay_diff:: #{overlay_diff_mask_command}")
 
-      # creating tmp mask image
-      Open3.popen3("#{test_size_command}") { |_stdin, _stdout, stderr, _wait_thr| stderr.read }
-      Open3.popen3("#{baseline_resize_command}") { |_stdin, _stdout, stderr, _wait_thr| stderr.read }
-      Open3.popen3("#{create_mask}") { |_stdin, _stdout, stderr, _wait_thr| stderr.read }
-      Open3.popen3("#{overlay_baseline_mask_command}") { |_stdin, _stdout, stderr, _wait_thr| stderr.read }
-      Open3.popen3("#{overlay_test_mask_command}") { |_stdin, _stdout, stderr, _wait_thr| stderr.read }
-      compare_result2 = Open3.popen3("#{compare_command}") { |_stdin, _stdout, stderr, _wait_thr| stderr.read }
-      Rails.logger.debug("Command: compare_result2:: #{compare_result2}")
-      Open3.popen3("#{overlay_diff_mask_command}") { |_stdin, _stdout, stderr, _wait_thr| stderr.read }
-    else
-      compare_command = compare_images_command(image_paths[:baseline], image_paths[:test], image_paths[:diff], test.fuzz_level, test.highlight_colour)
-      Open3.popen3("#{test_size_command}") { |_stdin, _stdout, stderr, _wait_thr| stderr.read }
-      Open3.popen3("#{baseline_resize_command}") { |_stdin, _stdout, stderr, _wait_thr| stderr.read }
-      compare_result2 = Open3.popen3("#{compare_command}") { |_stdin, _stdout, stderr, _wait_thr| stderr.read }
-    end 
+    Open3.popen3("#{test_size_command}") { |_stdin, _stdout, stderr, _wait_thr| stderr.read }
+    Open3.popen3("#{baseline_resize_command}") { |_stdin, _stdout, stderr, _wait_thr| stderr.read }
+    Open3.popen3("#{create_mask}") { |_stdin, _stdout, stderr, _wait_thr| stderr.read }
+    Open3.popen3("#{overlay_baseline_mask_command}") { |_stdin, _stdout, stderr, _wait_thr| stderr.read }
+    Open3.popen3("#{overlay_test_mask_command}") { |_stdin, _stdout, stderr, _wait_thr| stderr.read }
+    compare_result2 = Open3.popen3("#{compare_command}") { |_stdin, _stdout, stderr, _wait_thr| stderr.read }
+    Open3.popen3("#{overlay_diff_mask_command}") { |_stdin, _stdout, stderr, _wait_thr| stderr.read }
+    #else
+    #  compare_command = compare_images_command(image_paths[:baseline], image_paths[:test], image_paths[:diff], test.fuzz_level, test.highlight_colour)
+    #  Open3.popen3("#{test_size_command}") { |_stdin, _stdout, stderr, _wait_thr| stderr.read }
+    #  Open3.popen3("#{baseline_resize_command}") { |_stdin, _stdout, stderr, _wait_thr| stderr.read }
+    #  compare_result2 = Open3.popen3("#{compare_command}") { |_stdin, _stdout, stderr, _wait_thr| stderr.read }
+    #end 
     return compare_result2
   end
 
@@ -77,18 +74,18 @@ class ScreenshotComparison
   end
 
   def create_mask_command(size, output_file, exclude_areas, crop_areas)
-    shellCommand = "convert -size #{size} xc:transparent -fill yellow \ "
-    if crop_areas != nil 
+    shellCommand = "convert -size #{size} xc:transparent -fill yellow "
+    if crop_areas != "0,0 0,0"
       crop_areas = crop_areas.split(':')
       crop_areas.each do |item|
-        shellCommand += "-draw \"rectangle #{item}\""
+        shellCommand += "-draw \"rectangle #{item}\" "
       end
-    shellCommand += " -negate -channel A -fill yellow \ "
+    shellCommand += "-channel A -negate +channel -fill yellow\ "
     end
     if exclude_areas != nil
       exclude_areas = exclude_areas.split(':')
       exclude_areas.each do |item|
-        shellCommand += "-draw \"rectangle #{item}\""
+        shellCommand += "-draw \"rectangle #{item}\" "
       end
     end
     shellCommand  +=  " #{output_file.shellescape}"
@@ -132,12 +129,14 @@ class ScreenshotComparison
 
 
   def determine_pass(test, image_paths, compare_result)
-    Rails.logger.debug("Command: compare_result:: #{compare_result}")
+    Rails.logger.debug("compare_result:: #{compare_result}")
+    Rails.logger.debug("diff_threshhold:: #{test.diff_threshhold}")
+
     begin
       img_size = ImageSize.path(image_paths[:diff]).size.inject(:*)
       pixel_count = (compare_result.to_f / img_size) * 100
       test.diff = pixel_count.round(2)
-      (test.diff < test.diff_treshhold) 
+      (test.diff < test.diff_threshhold.to_f) 
     rescue
       # should probably raise an error here
     end
@@ -154,11 +153,11 @@ class ScreenshotComparison
 
   def remove_temp_files(image_paths)
     # remove the temporary files
-    #File.delete(image_paths[:test])
-    #File.delete(image_paths[:baseline])
-    #File.delete(image_paths[:diff])
-    #File.delete(image_paths[:mask])
-    #File.delete(image_paths[:test_masked])
-    #File.delete(image_paths[:baseline_masked])
+    File.delete(image_paths[:test])
+    File.delete(image_paths[:baseline])
+    File.delete(image_paths[:diff])
+    File.delete(image_paths[:mask]) if File.exist?(image_paths[:mask])
+    File.delete(image_paths[:test_masked]) if File.exist?(image_paths[:test_masked])
+    File.delete(image_paths[:baseline_masked]) if File.exist?(image_paths[:baseline_masked])
   end
 end
