@@ -9,8 +9,8 @@ WORKDIR /app
 ADD Gemfile* /app/
 RUN gem install bundler && bundle config build.nokogiri --use-system-libraries && bundle install --quiet --jobs 16 --retry 5 --without test
 RUN bundle install
-
 ADD . /app
+COPY . .
 
 EXPOSE 3000
 CMD ["script/server"]
